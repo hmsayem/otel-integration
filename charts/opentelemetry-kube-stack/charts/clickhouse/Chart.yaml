@@ -1,0 +1,5 @@
+maintainers:
+- email: hmsayem@appscode.com
+  name: sayem
+name: clickhouse
+version: 0.0.0

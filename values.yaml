@@ -1,0 +1,127 @@
+clusterName: ""
+collectors:
+  daemon:
+    suffix: agent
+    enabled: true
+    # because this file is inside the config folder, we need to reference it directly.
+    scrape_configs_file: "config/kubelet_scrape_configs.yaml"
+    # Adding an additional label for this collctor.
+    labels:
+      otel-collector-type: daemonset
+    targetAllocator:
+      enabled: true
+      image: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator:main
+      allocationStrategy: per-node
+      prometheusCR:
+        enabled: true
+        podMonitorSelector: {}
+        scrapeInterval: "30s"
+        serviceMonitorSelector: {}
+    config:
+      exporters:
+        otlp:
+          endpoint: opentelemetry-kube-stack-gateway-collector:4317   
+          tls:
+            insecure: true
+        debug:
+          verbosity: detailed
+      service:
+        pipelines:
+          metrics:
+            receivers: [prometheus]
+            exporters: [debug, otlp]
+          traces: null
+          logs:
+            exporters: [debug, otlp]
+    presets:
+      logsCollection:
+        enabled: true
+      kubeletMetrics:
+        enabled: false
+      hostMetrics:
+        enabled: false
+      kubernetesAttributes:
+        enabled: false
+  cluster:
+    suffix: gateway
+    enabled: true
+    labels:
+      otel-collector-type: deployment
+    env:
+    - name: CLICKHOUSE_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: opentelemetry-kube-stack-clickhouse-auth
+          key: username
+    - name: CLICKHOUSE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: opentelemetry-kube-stack-clickhouse-auth
+          key: password
+    image:
+      repository: otel/opentelemetry-collector-contrib
+      tag: 0.118.0
+    presets:
+      clusterMetrics:
+        enabled: false
+    config:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+      exporters:
+        clickhouse:
+          endpoint: "tcp://opentelemetry-kube-stack-clickhouse:9000"
+          username: ${CLICKHOUSE_USERNAME}
+          password: ${CLICKHOUSE_PASSWORD}
+          database: "otel"
+          create_schema: true
+          ttl: 0
+          logs_table_name: otel_logs
+          timeout: 10s
+          sending_queue:
+            queue_size: 100
+          retry_on_failure:
+            enabled: true
+            initial_interval: 5s
+            max_interval: 30s
+            max_elapsed_time: 300s
+      service:
+        pipelines:
+          metrics: 
+            receivers: [otlp]
+            exporters: [debug]
+          traces: null
+          logs:
+            receivers: [otlp,k8sobjects]
+            exporters: [clickhouse]
+
+instrumentation:
+  enabled: false
+opAMPBridge:
+  enabled: false
+kubernetesServiceMonitors:
+  enabled: true
+kubeApiServer:
+  enabled: true
+kubelet:
+  enabled: true
+kubeControllerManager:
+  enabled: true
+kubeDns:
+  enabled: true
+kubeEtcd:
+  enabled: true
+kubeScheduler:
+  enabled: true
+kubeProxy:
+  enabled: true
+kubeStateMetrics:
+  enabled: true
+nodeExporter:
+  enabled: true
+clickhouse:
+  enabled: true

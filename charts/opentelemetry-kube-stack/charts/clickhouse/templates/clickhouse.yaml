@@ -1,0 +1,14 @@
+apiVersion: kubedb.com/v1alpha2
+kind: ClickHouse
+metadata:
+  name: {{ include "clickhouse.fullname" . }}
+  namespace: {{ include "clickhouse.namespace" . }}
+spec:
+  version: 24.4.1
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1Gi
+  deletionPolicy: WipeOut
