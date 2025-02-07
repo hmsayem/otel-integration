@@ -6,6 +6,7 @@ metadata:
 spec:
   version: {{ .Values.version | quote }}
   deletionPolicy: {{ .Values.deletionPolicy | quote }}
+
 {{- if eq .Values.deploymentMode "cluster" }}
   clusterTopology:
     clickHouseKeeper:
@@ -13,9 +14,11 @@ spec:
       spec:
         replicas: {{ .Values.clusterTopology.clickHouseKeeper.replicas }}
         storage:
+          {{- if .Values.clusterTopology.clickHouseKeeper.storage.storageClassName }}
           storageClassName: {{ .Values.clusterTopology.clickHouseKeeper.storage.storageClassName | quote }}
+          {{- end }}
           accessModes:
-{{ toYaml .Values.clusterTopology.clickHouseKeeper.storage.accessModes | indent 12 }}
+            {{- toYaml .Values.clusterTopology.clickHouseKeeper.storage.accessModes | nindent 12 }}
           resources:
             {{- toYaml .Values.clusterTopology.clickHouseKeeper.storage.resources | nindent 12 }}
     cluster:
@@ -25,16 +28,20 @@ spec:
         podTemplate:
           {{- toYaml .Values.clusterTopology.cluster.podTemplate | nindent 10 }}
         storage:
+          {{- if .Values.clusterTopology.cluster.storage.storageClassName }}
           storageClassName: {{ .Values.clusterTopology.cluster.storage.storageClassName | quote }}
+          {{- end }}
           accessModes:
-{{ toYaml .Values.clusterTopology.cluster.storage.accessModes | indent 12 }}
+            {{- toYaml .Values.clusterTopology.cluster.storage.accessModes | nindent 12 }}
           resources:
-            requests:
-              storage: {{ .Values.clusterTopology.cluster.storage.resources.requests.storage | quote }}
+            {{- toYaml .Values.clusterTopology.cluster.storage.resources | nindent 12 }}
 {{- else }}
   storage:
+    {{- if .Values.storage.storageClassName }}
+    storageClassName: {{ .Values.storage.storageClassName | quote }}
+    {{- end }}
     accessModes:
-{{ toYaml .Values.storage.accessModes | indent 6 }}
+      {{- toYaml .Values.storage.accessModes | nindent 6 }}
     resources:
       {{- toYaml .Values.storage.resources | nindent 6 }}
 {{- end }}

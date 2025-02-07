@@ -11,5 +11,8 @@ dependencies:
 - name: prometheus-node-exporter
   repository: https://prometheus-community.github.io/helm-charts
   version: 4.37.3
-digest: sha256:ff56967acb909bc46ee586a1034ab7f8969dec606a43c48989a5bad7e4791424
-generated: "2024-10-21T15:34:58.29871407+02:00"
+- name: clickhouse
+  repository: ""
+  version: 0.0.0
+digest: sha256:ad2b4e41d6488806198ec4cd95adaac327e8474e3aafea6f314ccf5237e6f28d
+generated: "2025-02-07T11:21:39.146754327+06:00"

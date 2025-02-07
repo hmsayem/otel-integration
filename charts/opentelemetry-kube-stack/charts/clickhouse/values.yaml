@@ -6,8 +6,8 @@ fullnameOverride: ""
 
 
 # Global ClickHouse version and deletion policy
-version: "24.4.1"
-deletionPolicy: "WipeOut"
+version: 24.4.1
+deletionPolicy: WipeOut
 
 deploymentMode: standalone
 # Option to enable cluster mode.
@@ -16,6 +16,7 @@ clusterEnabled: false
 
 # Standalone deployment storage settings
 storage:
+  storageClassName: ""
   accessModes:
     - ReadWriteOnce
   resources:
@@ -28,7 +29,7 @@ clusterTopology:
     externallyManaged: false
     replicas: 1
     storage:
-      storageClassName: "standard"
+      storageClassName: ""
       accessModes:
         - ReadWriteOnce
       resources:
@@ -37,7 +38,7 @@ clusterTopology:
 
   # Note: The spec.cluster section is an array with a maximum of one item.
   cluster:
-    name: "appscode-cluster"
+    name: cluster
     shards: 2
     replicas: 2
     podTemplate:
@@ -59,7 +60,7 @@ clusterTopology:
                 cpu: 500m
                 memory: 1Gi
     storage:
-      storageClassName: "standard"
+      storageClassName: ""
       accessModes:
         - ReadWriteOnce
       resources:
