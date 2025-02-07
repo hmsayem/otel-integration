@@ -3,3 +3,66 @@ fullname: clickhouse
 namespace: ""
 nameOverride: ""
 fullnameOverride: ""
+
+
+# Global ClickHouse version and deletion policy
+version: "24.4.1"
+deletionPolicy: "WipeOut"
+
+deploymentMode: standalone
+# Option to enable cluster mode.
+# Set to true to deploy a clustered ClickHouse instance; false will deploy a standalone instance.
+clusterEnabled: false
+
+# Standalone deployment storage settings
+storage:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+# Cluster deployment settings (used only if clusterEnabled is true)
+clusterTopology:
+  clickHouseKeeper:
+    externallyManaged: false
+    replicas: 1
+    storage:
+      storageClassName: "standard"
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+
+  # Note: The spec.cluster section is an array with a maximum of one item.
+  cluster:
+    name: "appscode-cluster"
+    shards: 2
+    replicas: 2
+    podTemplate:
+      spec:
+        containers:
+          - name: clickhouse
+            resources:
+              limits:
+                memory: 4Gi
+              requests:
+                cpu: 500m
+                memory: 2Gi
+        initContainers:
+          - name: clickhouse-init
+            resources:
+              limits:
+                memory: 1Gi
+              requests:
+                cpu: 500m
+                memory: 1Gi
+    storage:
+      storageClassName: "standard"
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+
