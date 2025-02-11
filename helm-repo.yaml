@@ -1,0 +1,12 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: test-charts-oci
+  namespace: kubeops
+spec:
+  interval: 30m
+  provider: generic
+  timeout: 1m
+  type: oci
+  url: oci://registry-1.docker.io/hmsayem
+status: {}

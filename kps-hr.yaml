@@ -1,0 +1,126 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  labels:
+    app.kubernetes.io/component: kube-prometheus-stack
+    app.kubernetes.io/instance: opscenter-observability
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: featuresets.ui.k8s.appscode.com
+    app.kubernetes.io/part-of: opscenter-observability
+  name: kube-prometheus-stack
+  namespace: kubeops
+spec:
+  interval: 5m
+  timeout: 30m
+  releaseName: kube-prometheus-stack
+  targetNamespace: monitoring
+  storageNamespace: monitoring
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "69.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: appscode-charts-oci
+        namespace: kubeops
+  install:
+    createNamespace: true
+    crds: CreateReplace
+    remediation:
+      retries: -1
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: -1
+  values:
+    alertmanager:
+      alertmanagerSpec:
+        image:
+          registry: 0.1.acdc.appscode.ninja/quay
+    grafana:
+      downloadDashboardsImage:
+        repository: 0.1.acdc.appscode.ninja/docker/curlimages/curl
+      enabled: false
+      image:
+        repository: 0.1.acdc.appscode.ninja/docker/grafana/grafana
+      imageRenderer:
+        image:
+          repository: 0.1.acdc.appscode.ninja/docker/grafana/grafana-image-renderer
+      initChownData:
+        image:
+          repository: 0.1.acdc.appscode.ninja/docker/busybox
+      sidecar:
+        image:
+          repository: 0.1.acdc.appscode.ninja/quay/kiwigrid/k8s-sidecar
+      testFramework:
+        image: 0.1.acdc.appscode.ninja/docker/bats/bats:1.11.0
+    prometheus:
+      prometheusSpec:
+        additionalArgs:
+          - name: web.enable-otlp-receiver
+            value: ""
+        image:
+          registry: 0.1.acdc.appscode.ninja/quay
+        serviceMonitorSelector:
+          matchLabels:
+            scrape: disabled
+        serviceMonitorSelectorNilUsesHelmValues: true
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 50Gi
+    prometheus-node-exporter:
+      image:
+        registry: 0.1.acdc.appscode.ninja/quay
+      prometheus:
+        monitor:
+          relabelings:
+            - action: replace
+              regex: ^(.*)$
+              replacement: $1
+              separator: ;
+              sourceLabels:
+                - __meta_kubernetes_pod_node_name
+              targetLabel: node
+      tolerations:
+        - operator: Exists
+    prometheusOperator:
+      admissionWebhooks:
+        patch:
+          image:
+            registry: 0.1.acdc.appscode.ninja/k8s
+      image:
+        registry: 0.1.acdc.appscode.ninja/quay
+      prometheusConfigReloader:
+        image:
+          registry: 0.1.acdc.appscode.ninja/quay
+      thanosImage:
+        registry: 0.1.acdc.appscode.ninja/quay
+    thanosRuler:
+      thanosRulerSpec:
+        image:
+          registry: 0.1.acdc.appscode.ninja/quay
+    kubernetesServiceMonitors:
+      enabled: false
+    kubeApiServer:
+      enabled: false
+    kubelet:
+      enabled: false
+    kubeControllerManager:
+      enabled: false
+    kubeDns:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    kubeStateMetrics:
+      enabled: false
+    nodeExporter:
+      enabled: false

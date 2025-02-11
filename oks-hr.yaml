@@ -1,0 +1,168 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  labels:
+    app.kubernetes.io/component: opentelemetry-kube-stack
+    app.kubernetes.io/instance: opscenter-observability
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: featuresets.ui.k8s.appscode.com
+    app.kubernetes.io/part-of: opscenter-observability
+  name: opentelemetry-kube-stack
+  namespace: kubeops
+spec:
+  chart:
+    spec:
+      chart: opentelemetry-kube-stack
+      reconcileStrategy: ChartVersion
+      sourceRef:
+        kind: HelmRepository
+        name: test-charts-oci
+        namespace: kubeops
+      version: 0.3.11
+  install:
+    crds: CreateReplace
+    createNamespace: true
+    remediation:
+      retries: -1
+  interval: 5m
+  releaseName: opentelemetry-kube-stack
+  storageNamespace: monitoring
+  targetNamespace: monitoring
+  timeout: 30m
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: -1
+  values:
+    clickhouse:
+      deploymentMode: standalone
+      enabled: true
+    clusterName: ""
+    collectors:
+      cluster:
+        config:
+          exporters:
+            clickhouse:
+              database: otel
+              endpoint: tcp://opentelemetry-kube-stack-clickhouse:9000
+              logs_table_name: otel_logs
+              password: ${CLICKHOUSE_PASSWORD}
+              retry_on_failure:
+                enabled: true
+                initial_interval: 5s
+                max_elapsed_time: 300s
+                max_interval: 30s
+              sending_queue:
+                queue_size: 100
+              timeout: 10s
+              ttl: 0
+              username: ${CLICKHOUSE_USERNAME}
+            otlphttp/prometheus:
+              endpoint: http://kube-prometheus-stack-prometheus:9090/api/v1/otlp
+              tls:
+                insecure: true
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+                http:
+                  endpoint: 0.0.0.0:4318
+          service:
+            pipelines:
+              logs:
+                exporters:
+                  - clickhouse
+                receivers:
+                  - otlp
+                  - k8sobjects
+              metrics:
+                exporters:
+                  - otlphttp/prometheus
+                receivers:
+                  - otlp
+        enabled: true
+        env:
+          - name: CLICKHOUSE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: opentelemetry-kube-stack-clickhouse-auth
+          - name: CLICKHOUSE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: opentelemetry-kube-stack-clickhouse-auth
+        image:
+          repository: otel/opentelemetry-collector-contrib
+          tag: 0.95.0
+        labels:
+          otel-collector-type: deployment
+        presets:
+          clusterMetrics:
+            enabled: false
+        suffix: gateway
+      daemon:
+        config:
+          exporters:
+            otlp:
+              endpoint: opentelemetry-kube-stack-gateway-collector:4317
+              tls:
+                insecure: true
+          service:
+            pipelines:
+              logs:
+                exporters:
+                  - otlp
+              metrics:
+                exporters:
+                  - otlp
+                receivers:
+                  - prometheus
+        enabled: true
+        labels:
+          otel-collector-type: daemonset
+        presets:
+          hostMetrics:
+            enabled: false
+          kubeletMetrics:
+            enabled: false
+          kubernetesAttributes:
+            enabled: false
+          logsCollection:
+            enabled: true
+        scrape_configs_file: config/kubelet_scrape_configs.yaml
+        suffix: agent
+        targetAllocator:
+          allocationStrategy: per-node
+          enabled: true
+          image: ghcr.io/open-telemetry/opentelemetry-operator/target-allocator:main
+          prometheusCR:
+            enabled: true
+            podMonitorSelector: {}
+            scrapeInterval: 30s
+            serviceMonitorSelector: {}
+    instrumentation:
+      enabled: false
+    kubeApiServer:
+      enabled: false
+    kubeControllerManager:
+      enabled: false
+    kubeDns:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeStateMetrics:
+      enabled: true
+    kubelet:
+      enabled: false
+    kubernetesServiceMonitors:
+      enabled: true
+    nodeExporter:
+      enabled: true
+    opAMPBridge:
+      enabled: false
